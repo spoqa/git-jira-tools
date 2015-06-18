@@ -1,0 +1,14 @@
+[package]
+name = "git-what-did-i"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+
+[[bin]]
+name = "git-what-did-i"
+path = "src/bin.rs"
+
+[dependencies]
+log = "*"
+hyper = ">=0.5.2"
+regex = "*"
+rustc-serialize = "*"
