@@ -1,9 +1,11 @@
 #[macro_use]
 extern crate log;
 
+extern crate docopt;
 extern crate hyper;
 extern crate regex;
 extern crate rustc_serialize;
+extern crate url;
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -13,10 +15,43 @@ use std::io::{BufRead, Write};
 use std::process::Command;
 use std::str::FromStr;
 
-use hyper::{Client, Url};
+use docopt::Docopt;
+use hyper::Client;
 use hyper::header::{Authorization, Basic};
 use regex::Regex;
 use rustc_serialize::json::Json;
+use url::{Url, UrlParser};
+
+
+static USAGE: &'static str = r#"
+Usage: git-jira branch
+       git-jira --help
+
+Options:
+  -h, --help    Show this message.
+"#;
+
+#[derive(RustcDecodable, Debug)]
+struct Args {
+    cmd_branch: bool,
+}
+
+struct Config {
+    base_url: Url,
+    credential: hyper::header::Basic,
+}
+
+impl Config {
+    fn from_git_config() -> Result<Config, Box<Error>> {
+        let base_url = try!(read_config_value("com.spoqa.jira.url", "JIRA URL"));
+        let base_url = Url::parse(&base_url).unwrap();
+        let cred = try!(read_credential());
+        Ok(Config {
+            base_url: base_url,
+            credential: cred,
+        })
+    }
+}
 
 fn read_value(prompt: &str) -> Result<String, Box<Error>> {
     let mut stdin = io::stdin();
@@ -80,9 +115,15 @@ fn read_credential() -> Result<hyper::header::Basic, Box<Error>> {
 }
 
 fn main() {
+    let args: Args = Docopt::new(USAGE).and_then(|d| d.decode()).unwrap_or_else(|e| e.exit());
+    let config = Config::from_git_config().unwrap();
+    if args.cmd_branch {
+        branch(config);
+    }
+}
+
+fn branch(config: Config) {
     let key_pattern = Regex::new(r"[A-Z]+-\d+").unwrap();
-    let base_url = read_config_value("com.spoqa.jira.url", "JIRA URL").unwrap();
-    let cred = read_credential().unwrap();
 
     let output = Command::new("git").arg("branch").arg("--list").arg("--no-column")
         .output()
@@ -94,7 +135,7 @@ fn main() {
 
     let branches: Vec<_> = io::BufReader::new(&output.stdout[..]).lines().map(Result::unwrap).collect();
     let keys: Vec<_> = branches.iter().map(|b| key_pattern.captures(&b).and_then(|caps| caps.at(0))).collect();
-    let mut url = Url::parse(&format!("{}rest/api/2/search", base_url)).unwrap();
+    let mut url = UrlParser::new().base_url(&config.base_url).parse("/rest/api/2/search").unwrap();
     url.set_query_from_pairs(vec![
         ("jql", &format!("key in ({})", keys.iter().filter_map(|&e| e).collect::<Vec<_>>().connect(","))[..]),
         ("fields", "summary"),
@@ -102,7 +143,7 @@ fn main() {
     debug!("URL: {}", url);
     let mut client = Client::new();
     let mut res = client.get(url)
-        .header(Authorization(cred))
+        .header(Authorization(config.credential))
         .send().unwrap();
     let json = Json::from_reader(&mut res).unwrap();
     let issues = json["issues"].as_array().unwrap();

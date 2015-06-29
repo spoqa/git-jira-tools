@@ -1,6 +1,6 @@
 [package]
 name = "git-jira-tools"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Eunchong Yu <kroisse@gmail.com>"]
 
 [[bin]]
@@ -8,7 +8,9 @@ name = "git-jira"
 path = "src/bin.rs"
 
 [dependencies]
+docopt = "*"
 log = "*"
 hyper = ">=0.5.2"
 regex = "*"
 rustc-serialize = "*"
+url = "*"
