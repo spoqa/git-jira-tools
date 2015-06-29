@@ -1,10 +1,10 @@
 [package]
-name = "git-what-did-i"
+name = "git-jira-tools"
 version = "0.1.0"
 authors = ["Eunchong Yu <kroisse@gmail.com>"]
 
 [[bin]]
-name = "git-what-did-i"
+name = "git-jira"
 path = "src/bin.rs"
 
 [dependencies]

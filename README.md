@@ -4,9 +4,9 @@ Usage
 ```zsh
 $ # after cloning it
 $ cargo build --release
-$ # copy or link ./target/release/git-what-did-i to $PATH
+$ # copy or link ./target/release/git-jira to $PATH
 $ # cd to your git repository
-$ git what-did-i
+$ git jira branch
 JIRA URL: <put the root url of your JIRA service>
 Username: <your account name>
 Password: <and so on>
